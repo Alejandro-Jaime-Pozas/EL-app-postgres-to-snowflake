@@ -96,6 +96,9 @@ def extract_and_load():
                     tables = get_table_names(pg_cursor, schema_name)
                     print(f"Found {len(tables)} tables: {tables}")
 
+                    # TEMP ignore salary since big data takes too long
+                    tables = [t for t in tables if t != 'salary']
+
                     # Process each table
                     for table_name in tables:
                         print(f"\nProcessing table: {table_name}")
