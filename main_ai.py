@@ -2,6 +2,7 @@ import psycopg2
 import snowflake.connector
 import os
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -61,20 +62,39 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-def extract_and_load():
-    schema_name = 'employees'
-    batch_size = 10000  # Insert 10k rows at a time
-
-    # Connect to Postgres
-    print('Connecting to Postgres...')
-    with psycopg2.connect(
+def create_pg_connection():
+    """Create a new Postgres connection with keepalive settings"""
+    return psycopg2.connect(
         host=os.getenv('PGHOST'),
         dbname=os.getenv('PGDATABASE'),
         user=os.getenv('PGUSER'),
         password=os.getenv('PGPASSWORD'),
-    ) as pg_conn:
-        print('Connected to Postgres.')
+        keepalives=1,
+        keepalives_idle=30,
+        keepalives_interval=10,
+        keepalives_count=5,
+        connect_timeout=10
+    )
 
+def ensure_pg_connection(pg_conn):
+    """Check if connection is alive, reconnect if needed"""
+    try:
+        with pg_conn.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return pg_conn
+    except (psycopg2.OperationalError, psycopg2.InterfaceError):
+        print("  Postgres connection lost, reconnecting...")
+        return create_pg_connection()
+
+def extract_and_load():
+    schema_name = 'employees'
+
+    # Connect to Postgres
+    print('Connecting to Postgres...')
+    pg_conn = create_pg_connection()
+    print('Connected to Postgres.')
+
+    try:
         # Connect to Snowflake
         print('Connecting to Snowflake...')
         with snowflake.connector.connect(
@@ -101,36 +121,51 @@ def extract_and_load():
 
                     # Process each table
                     for table_name in tables:
+                        # Ensure connection is alive before processing each table
+                        pg_conn = ensure_pg_connection(pg_conn)
+
                         print(f"\nProcessing table: {table_name}")
 
-                        # Create/replace table in Snowflake
-                        create_ddl = get_create_table_ddl(pg_cursor, schema_name, table_name)
-                        sf_cursor.execute(create_ddl)
-                        print(f"  Created/replaced table in Snowflake")
+                        # Create new cursor after reconnection
+                        with pg_conn.cursor() as pg_cursor:
+                            # Create/replace table in Snowflake
+                            create_ddl = get_create_table_ddl(pg_cursor, schema_name, table_name)
+                            sf_cursor.execute(create_ddl)
+                            print(f"  Created/replaced table in Snowflake")
 
-                        # Extract data from Postgres
-                        pg_cursor.execute(f"SELECT * FROM {schema_name}.{table_name}")
-                        rows = pg_cursor.fetchall()
-                        print(f"  Extracted {len(rows)} rows from Postgres")
+                            # Extract data from Postgres
+                            pg_cursor.execute(f"SELECT * FROM {schema_name}.{table_name}")
+                            rows = pg_cursor.fetchall()
+                            print(f"  Extracted {len(rows)} rows from Postgres")
 
-                        if rows:
-                            # Get column names
-                            columns = [desc[0] for desc in pg_cursor.description]
-                            placeholders = ', '.join(['%s'] * len(columns))
-                            insert_sql = f"INSERT INTO {schema_name}.{table_name} VALUES ({placeholders})"
+                            if rows:
+                                # Get column count and calculate batch size
+                                num_columns = len(pg_cursor.description)
+                                batch_size = min(10000, 15000 // num_columns)
+                                print(f"  Using batch size: {batch_size} (table has {num_columns} columns)")
 
-                            # Insert in batches
-                            total_inserted = 0
-                            for batch in chunks(rows, batch_size):
-                                sf_cursor.executemany(insert_sql, batch)
-                                total_inserted += len(batch)
-                                print(f"  Loaded {total_inserted}/{len(rows)} rows...", end='\r')
+                                columns = [desc[0] for desc in pg_cursor.description]
+                                placeholders = ', '.join(['%s'] * num_columns)
+                                insert_sql = f"INSERT INTO {schema_name}.{table_name} VALUES ({placeholders})"
 
-                            print(f"  Loaded {total_inserted} rows into Snowflake ✓")
-                        else:
-                            print(f"  No data to load (empty table)")
+                                # Insert in batches
+                                total_inserted = 0
+                                for batch in chunks(rows, batch_size):
+                                    sf_cursor.executemany(insert_sql, batch)
+                                    total_inserted += len(batch)
+                                    print(f"  Loaded {total_inserted}/{len(rows)} rows...", end='\r')
+
+                                print(f"  Loaded {total_inserted} rows into Snowflake ✓")
+                            else:
+                                print(f"  No data to load (empty table)")
 
                     print("\n✅ All tables processed successfully!")
+
+    finally:
+        # Ensure Postgres connection is closed
+        if pg_conn and not pg_conn.closed:
+            pg_conn.close()
+            print("\nPostgres connection closed.")
 
 if __name__ == '__main__':
     extract_and_load()
