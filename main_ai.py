@@ -56,8 +56,14 @@ def map_pg_to_snowflake_type(pg_type, max_length):
     }
     return type_mapping.get(pg_type, 'VARCHAR')
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst"""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 def extract_and_load():
     schema_name = 'employees'
+    batch_size = 10000  # Insert 10k rows at a time
 
     # Connect to Postgres
     print('Connecting to Postgres...')
@@ -107,12 +113,17 @@ def extract_and_load():
                         if rows:
                             # Get column names
                             columns = [desc[0] for desc in pg_cursor.description]
-
-                            # Insert into Snowflake
                             placeholders = ', '.join(['%s'] * len(columns))
                             insert_sql = f"INSERT INTO {schema_name}.{table_name} VALUES ({placeholders})"
-                            sf_cursor.executemany(insert_sql, rows)
-                            print(f"  Loaded {len(rows)} rows into Snowflake")
+
+                            # Insert in batches
+                            total_inserted = 0
+                            for batch in chunks(rows, batch_size):
+                                sf_cursor.executemany(insert_sql, batch)
+                                total_inserted += len(batch)
+                                print(f"  Loaded {total_inserted}/{len(rows)} rows...", end='\r')
+
+                            print(f"  Loaded {total_inserted} rows into Snowflake ✓")
                         else:
                             print(f"  No data to load (empty table)")
 
