@@ -1,10 +1,14 @@
 import psycopg2
 import snowflake.connector
-import os
-from dotenv import load_dotenv
-import time
 
-load_dotenv()
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+# Load the .env from the DAGs folder (same directory Airflow mounts)
+load_dotenv(Path("/opt/airflow/dags/.env"))
 
 def get_table_names(pg_cursor, schema_name):
     """Get all table names in a schema"""
@@ -64,11 +68,14 @@ def chunks(lst, n):
 
 def create_pg_connection():
     """Create a new Postgres connection with keepalive settings"""
+    print('SSL mode equals: ', os.getenv('PGSSLMODE'))
     return psycopg2.connect(
         host=os.getenv('PGHOST'),
         dbname=os.getenv('PGDATABASE'),
         user=os.getenv('PGUSER'),
         password=os.getenv('PGPASSWORD'),
+        sslmode=os.getenv('PGSSLMODE'),
+        channel_binding=os.getenv('PGCHANNELBINDING'),
         keepalives=1,
         keepalives_idle=30,
         keepalives_interval=10,
@@ -117,7 +124,7 @@ def extract_and_load():
                     print(f"Found {len(tables)} tables: {tables}")
 
                     # TEMP ignore large tables since big data takes too long
-                    tables = [t for t in tables if t not in ('salary', 'title', 'department_employee')]
+                    tables = [t for t in tables if t not in ('salary', 'title', 'department_employee', 'employee')]
 
                     # Process each table
                     for table_name in tables:
