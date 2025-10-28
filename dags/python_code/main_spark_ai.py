@@ -22,12 +22,22 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
 
-# Optional: load .env from Airflow DAGs directory if present
-try:
+# Load the .env file either locally or in docker container
+CURRENT_FILE = Path(__file__).resolve()
+ENV_PATH = CURRENT_FILE.parent.parent / ".env"
+if ENV_PATH.exists():
     from dotenv import load_dotenv
-    load_dotenv(Path("/opt/airflow/dags/.env"))
-except Exception:
-    pass
+    load_dotenv(ENV_PATH)
+    print(f"✅ Loaded .env from {ENV_PATH}")
+else:
+    print(f"⚠️ No .env file found at {ENV_PATH}")
+
+# # Optional: load .env from Airflow DAGs directory if present
+# try:
+#     from dotenv import load_dotenv
+#     load_dotenv(Path("/opt/airflow/dags/.env"))
+# except Exception:
+#     pass
 
 # ---- PG -> Snowflake type mapping (similar to your original) ----
 def map_pg_to_snowflake_type(pg_type: str, max_length: Optional[int]) -> str:
