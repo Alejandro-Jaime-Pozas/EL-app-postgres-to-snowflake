@@ -2,15 +2,17 @@
 
 # psql_to_sf_spark.py
 # Run with (example):
-# spark-submit \
-#  --packages org.postgresql:postgresql:42.7.4,net.snowflake:spark-snowflake_2.12:2.16.0-spark_3.5,net.snowflake:snowflake-jdbc:3.16.1 \
-#  --conf spark.sql.shuffle.partitions=256 \
-#  /opt/spark/jobs/psql_to_sf_spark.py \
-#    --schema employees \
-#    --pg-url "jdbc:postgresql://$PGHOST:5432/$PGDATABASE" \
-#    --pg-user "$PGUSER" --pg-password "$PGPASSWORD" --pg-sslmode "$PGSSLMODE" \
-#    --sf-account "$SF_ACCOUNT" --sf-user "$SF_USER" --sf-password "$SF_PASSWORD" \
-#    --sf-warehouse "$SF_WAREHOUSE" --sf-database "$SF_DATABASE" --sf-role "$SF_ROLE"
+spark-submit \
+  --packages org.postgresql:postgresql:42.7.4,net.snowflake:spark-snowflake_2.12:3.1.5,net.snowflake:snowflake-jdbc:3.27.0 \
+  --conf spark.sql.shuffle.partitions=256 \
+  /opt/spark/jobs/psql_to_sf_spark.py \
+    --schema employees \
+    --pg-url "jdbc:postgresql://$PGHOST:5432/$PGDATABASE" \
+    --pg-user "$PGUSER" --pg-password "$PGPASSWORD" --pg-sslmode "$PGSSLMODE" \
+    --sf-account "$SF_ACCOUNT" --sf-user "$SF_USER" --sf-password "$SF_PASSWORD" \
+    --sf-warehouse "$SF_WAREHOUSE" --sf-database "$SF_DATABASE" --sf-role "$SF_ROLE"
+
+
 
 import os
 import sys
