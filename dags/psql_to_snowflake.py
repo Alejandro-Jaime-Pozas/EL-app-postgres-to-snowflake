@@ -21,10 +21,10 @@ default_args = {
 def overwrite_tables_to_snowflake():
 
     @task()
-    def this_task():
+    def extract_and_load_task():
         return extract_and_load()
 
-    this_task()
+    extract_and_load_task()
 
 
 trigger_overwrite_tables_to_snowflake = overwrite_tables_to_snowflake()
