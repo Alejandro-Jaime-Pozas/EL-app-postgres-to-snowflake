@@ -79,6 +79,7 @@ def build_snowflake_create(schema: str, table: str, cols: List[Tuple[str, str, O
 # ---- Helpers to query Postgres information_schema via Spark JDBC ----
 def jdbc_read(spark: SparkSession, url: str, user: str, password: str, query: str, driver: str = "org.postgresql.Driver"):
     """Helpers to query Postgres information_schema via Spark JDBC."""
+    print('jdbc url is: ', os.getenv("PG_JDBC_URL"))
     return (
         spark.read.format("jdbc")
         .option("url", url)

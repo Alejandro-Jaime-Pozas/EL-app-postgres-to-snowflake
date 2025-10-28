@@ -15,8 +15,8 @@ psycopg2-binary==2.9.11
 pycparser==2.23
 PyJWT==2.10.1
 pyOpenSSL==25.3.0
-py4j==0.10.9.9
-pyspark==4.0.1
+py4j==0.10.9.7
+pyspark==3.5.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 pytz==2025.2
