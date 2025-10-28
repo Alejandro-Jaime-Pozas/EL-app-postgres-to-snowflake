@@ -4,7 +4,7 @@
 # spark-submit \
 #   --packages org.postgresql:postgresql:42.7.4,net.snowflake:spark-snowflake_2.12:3.1.5,net.snowflake:snowflake-jdbc:3.17.0 \
 #   --conf spark.sql.shuffle.partitions=256 \
-#   /Users/Alex/Documents/Coding/Applications/EL_app/dags/python_code/main_spark_ai.py \
+#   /Users/Alex/Documents/Coding/Applications/EL_app/dags/python_code/spark_main_ai.py \
 #     --schema employees \
 #     --pg-url "jdbc:postgresql://$PGHOST:5432/$PGDATABASE" \
 #     --pg-user "$PGUSER" --pg-password "$PGPASSWORD" --pg-sslmode "$PGSSLMODE" \

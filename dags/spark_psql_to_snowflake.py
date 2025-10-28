@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from python_code.main_spark_ai import main as extract_and_load
+from python_code.spark_main_ai import main as extract_and_load
 
 from airflow.sdk import dag, task
 
@@ -14,9 +14,9 @@ default_args = {
 
 # just need a simple dag schedule to trigger the python code...which is an overwrite of the table for now (later implement insert on date cursor)
 @dag(
-    dag_id='postgres_employee_schema_to_snowflake',
+    dag_id='spark_postgres_employee_schema_to_snowflake',
     start_date=datetime(2025, 10, 26),
-    schedule='0 6 * * *'  # tweak schedule for testing
+    schedule='*/5 * * * *'  # tweak schedule for testing
 )
 def overwrite_tables_to_snowflake():
 
