@@ -262,6 +262,9 @@ def main():
     if args.sf_role:
         sfOptions["sfRole"] = args.sf_role
 
+    # TEMP filter out tables that are too large for testing
+    tables = [t for t in tables if t not in ('salary', 'title', 'department_employee')]
+
     # Process each table
     for table in tables:
         full_src = f"{args.schema}.{table}"

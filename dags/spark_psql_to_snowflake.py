@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from python_code.main_ai import extract_and_load
+from python_code.main_spark_ai import main as extract_and_load
 
 from airflow.sdk import dag, task
 
