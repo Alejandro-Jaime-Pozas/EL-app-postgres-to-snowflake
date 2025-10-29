@@ -123,7 +123,7 @@ def extract_and_load():
                     tables = get_table_names(pg_cursor, schema_name)
                     print(f"Found {len(tables)} tables: {tables}")
 
-                    # TEMP ignore large tables since big data takes too long
+                    # TEMP ignore large tables since big data takes too long!!!!!!!!
                     tables = [t for t in tables if t not in ('salary', 'title', 'department_employee', 'employee')]
 
                     # Process each table
