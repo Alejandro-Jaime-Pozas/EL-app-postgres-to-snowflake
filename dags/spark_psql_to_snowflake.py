@@ -16,7 +16,7 @@ default_args = {
 @dag(
     dag_id='spark_postgres_employee_schema_to_snowflake_v01',
     start_date=datetime(2025, 10, 26),
-    schedule='*/5 * * * *'  # tweak schedule for testing
+    schedule=None  # tweak schedule for testing
 )
 def overwrite_tables_to_snowflake():
 
