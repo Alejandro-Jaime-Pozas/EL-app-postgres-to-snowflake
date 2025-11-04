@@ -1,3 +1,5 @@
+# This is the main file that executes the ETL process from psql > snowflake
+
 from datetime import datetime, timedelta
 
 from python_code.main_ai import extract_and_load
