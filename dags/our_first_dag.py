@@ -1,11 +1,9 @@
 from datetime import datetime, timedelta
 
-from python_code.utils import default_args
-
+from python_code.main.utils import default_args
 
 from airflow import DAG
 from airflow.providers.standard.operators.bash import BashOperator
-
 
 
 # default_args = {
