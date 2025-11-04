@@ -13,7 +13,6 @@ default_args = {
     'retry_delay': timedelta(minutes=5)
 }
 
-
 # just need a simple dag schedule to trigger the python code...which is an overwrite of the table for now (later implement insert on date cursor)
 @dag(
     dag_id='postgres_employee_schema_to_snowflake',
@@ -27,6 +26,5 @@ def overwrite_tables_to_snowflake():
         return extract_and_load()
 
     extract_and_load_task()
-
 
 trigger_overwrite_tables_to_snowflake = overwrite_tables_to_snowflake()
