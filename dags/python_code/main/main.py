@@ -10,6 +10,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds
 from sqlalchemy import text
+from python_code.main.sql_files.get_all_table_data import get_all_table_data
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
@@ -47,7 +48,7 @@ def get_pg_cursor():
     return cur
 
 
-def get_sqlalchemy_engine() -> str:
+def get_sqlalchemy_engine():
     """Returns a SQLAlchemy engine to use."""
     pg_hook = get_pg_hook()
     pg_engine = pg_hook.get_sqlalchemy_engine()
@@ -83,16 +84,20 @@ def get_schemas():
 # pip install psycopg2-binary SQLAlchemy pandas pyarrow s3fs
 
 def extract_pg_table_data(
+    schema_name: str,
+    table_name: str,
+    sql: str = 'select 1;',
     chunksize: int = CHUNK_SIZE,
 ):
     """Extracts data from a single pg table."""
+
     pg_engine = get_sqlalchemy_engine()
 
     try:
         with pg_engine.begin() as conn:
             conn.exec_driver_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             for df in pd.read_sql(f'select 1;', conn, chunksize=chunksize):
-                pass
+                print(df.__dict__)
     finally:
         pass
 

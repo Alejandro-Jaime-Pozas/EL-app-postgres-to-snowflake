@@ -22,7 +22,10 @@ def ETLPostgressToS3ToSnowflake():
 
     @task
     def check_pg_conn():
-        extract_pg_table_data()
+        extract_pg_table_data(
+            'blue',
+            'bird',
+        )
 
     check_pg_conn()
 
