@@ -6,24 +6,24 @@ from airflow.sdk import dag, task
 from python_code.main.main import (
     get_pg_cursor,
     get_schemas,
-    get_sqlalchemy_conn_uri,
+    extract_pg_table_data,
 
 )
 
 
 @dag(
     dag_id='main_dag_v01',
-    description='Runs the ETL process to extract from psql db > Snowflake.',
+    description='Runs the ETL process to extract from psql db > s3 > snowflake.',
     start_date=datetime(2025, 11, 1),
     schedule=None,
     dagrun_timeout=timedelta(minutes=60),
 )
-def ETLPostgressToSnowflake():
+def ETLPostgressToS3ToSnowflake():
 
     @task
     def check_pg_conn():
-        get_sqlalchemy_conn_uri()
+        extract_pg_table_data()
 
     check_pg_conn()
 
-ETLPostgressToSnowflake()
+ETLPostgressToS3ToSnowflake()
