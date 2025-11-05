@@ -4,11 +4,11 @@
     # use airflow hooks/operators instead of directly from postgres/snowflake connectors
 
 
-# import os
-# import pandas as pd
-# import pyarrow as pa
-# import pyarrow.dataset as ds
-# from sqlalchemy import create_engine, text
+import os
+import pandas as pd
+import pyarrow as pa
+import pyarrow.dataset as ds
+from sqlalchemy import create_engine, text
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
@@ -21,9 +21,9 @@ SF_CONN_ID='sf-default'
 # Extract from postgres
 
 
-# # Load to S3
-# S3_URI = "s3://postgres-neon-db-employees/db-data/schemas/"  # partition path you like
-# ROWS_PER_FILE = 250_000
+# Load to S3
+S3_URI = "s3://postgres-neon-db-employees/db-data/schemas/"  # partition path you like
+ROWS_PER_FILE = 250_000
 
 
 # 1. extract all schemas from the db from information_schema
@@ -37,14 +37,15 @@ def get_pg_cursor():
     return cur
 
 
-def get_sqlalchemy_conn_uri(conn_id: str) -> str:
+def get_sqlalchemy_conn_uri(conn_id: str = PG_CONN_ID) -> str:
     """
     Returns a SQLAlchemy-style connection URI from an Airflow connection.
     """
-    from airflow.hooks.base import BaseHook
+    from airflow.sdk.bases.hook import BaseHook
 
     conn = BaseHook.get_connection(conn_id)
     uri = conn.get_uri()
+    print('the uri to psql db connection is: ', uri)
     return uri
 
 
@@ -73,9 +74,10 @@ def get_schemas():
 
 
 # 2.5 copy all psql tables into s3 bucket as parquet files, use <proj_name>/db-data/schemas/<schema>/<table> for bucket location
-# # pip install psycopg2-binary SQLAlchemy pandas pyarrow s3fs
+# pip install psycopg2-binary SQLAlchemy pandas pyarrow s3fs
 
-# engine = create_engine(PG_DSN)
+# pg_uri = get_sqlalchemy_conn_uri()
+# engine = create_engine(pg_uri)
 
 # # Use a consistent snapshot so the whole export sees one point in time
 # with engine.begin() as conn:

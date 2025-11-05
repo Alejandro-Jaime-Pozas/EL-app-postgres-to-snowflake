@@ -6,6 +6,7 @@ from airflow.sdk import dag, task
 from python_code.main.main import (
     get_pg_cursor,
     get_schemas,
+    get_sqlalchemy_conn_uri,
 
 )
 
@@ -21,7 +22,7 @@ def ETLPostgressToSnowflake():
 
     @task
     def check_pg_conn():
-        get_schemas()
+        get_sqlalchemy_conn_uri()
 
     check_pg_conn()
 
