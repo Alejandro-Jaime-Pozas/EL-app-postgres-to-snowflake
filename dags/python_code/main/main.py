@@ -46,7 +46,7 @@ def get_schemas():
     return schema_names
 
 
-# 2.5 copy all psql tables into s3 bucket  as parquet files, use <proj_name>/db-data/schemas/<schema>/<table> for bucket location
+# 2.5 copy all psql tables into s3 bucket as parquet files, use <proj_name>/db-data/schemas/<schema>/<table> for bucket location
 
 
 
