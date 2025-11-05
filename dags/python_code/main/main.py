@@ -42,12 +42,17 @@ def get_schemas():
 
     cur.execute(sql)
     schema_names = cur.fetchall()
-    print('here are the schema names: ')
     print(schema_names)
-    print(type(schema_names))
     return schema_names
 
 
+# 2.5 copy all psql tables into s3 bucket  as parquet files, use <proj_name>/db-data/schemas/<schema>/<table> for bucket location
+
+
+
 # 3. for each table, extract column names, data types, all values to be able to accurately map to snowflake
+
+
+
 # 4. create snowflake tables if don't exist using correct column names and data types
 # 5. insert (or copy) postgres data into its corresponding snowflake table incrementally (or full load if first sync)
