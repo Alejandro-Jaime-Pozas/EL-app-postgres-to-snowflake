@@ -28,7 +28,7 @@ def ETLPostgressToS3ToSnowflake():
         #     'employees',
         #     'employee',
         # )
-        _s3fs_from_airflow_conn
+        _s3fs_from_airflow_conn()
 
     check_pg_conn()
 

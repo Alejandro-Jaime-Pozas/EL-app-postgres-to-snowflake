@@ -9,6 +9,7 @@ import os
 import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds
+import pyarrow.fs as pafs
 from sqlalchemy import text
 from python_code.main.sql_files.get_all_table_data import get_all_table_data
 
@@ -116,10 +117,11 @@ def extract_pg_table_data_to_s3(
 
 
 # retrieve airflow aws login conn
-def _s3fs_from_airflow_conn(aws_conn_id: str, region_name: str | None = None) -> pa.fs.S3FileSystem:
+def _s3fs_from_airflow_conn(aws_conn_id: str = AWS_CONN_ID, region_name: str | None = None):
     aws = AwsBaseHook(aws_conn_id=aws_conn_id, client_type="sts")
     creds = aws.get_credentials()
-    s3_filesystem = pa.fs.S3FileSystem(
+    print(creds)
+    s3_filesystem = pafs.S3FileSystem(
         access_key=creds.access_key,
         secret_key=creds.secret_key,
         session_token=creds.token,
