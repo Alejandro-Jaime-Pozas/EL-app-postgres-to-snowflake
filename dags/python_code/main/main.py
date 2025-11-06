@@ -13,12 +13,14 @@ from sqlalchemy import text
 from python_code.main.sql_files.get_all_table_data import get_all_table_data
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 
 # Connections Airflow UI
 PG_CONN_ID='pg-local'  # not local but ok, change later
 SF_CONN_ID='sf-default'
+AWS_CONN_ID='aws-sandiego'
 
 # Extract from postgres
 CHUNK_SIZE=50_000
@@ -97,17 +99,34 @@ def extract_pg_table_data_to_s3(
 
     try:
         with pg_engine.begin() as conn:
-            conn.exec_driver_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            conn.exec_driver_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")  # prob wait for entire dataset to complete to count as single tx
             current_chunk = 0
             for df in pd.read_sql(sql, conn, chunksize=chunksize):
-                print(df.head())  # best for quick look at all data
-                print('STARTING ITER FROM ROW:', current_chunk, 'TO', current_chunk + chunksize)
-                tbl = pa.Table.from_pandas(df, preserve_index=False)
                 current_chunk += chunksize
+                # print(df.head())  # best for quick look at all data
+                print('STARTING ITER FROM ROW:', current_chunk, 'TO', current_chunk + chunksize)
+
+                # create table format ready to load to parquet file format
+                tbl = pa.Table.from_pandas(df, preserve_index=False)
+
                 # print(tbl)
                 # export table to parquet file in s3
     finally:
         pass
+
+
+# retrieve airflow aws login conn
+def _s3fs_from_airflow_conn(aws_conn_id: str, region_name: str | None = None) -> pa.fs.S3FileSystem:
+    aws = AwsBaseHook(aws_conn_id=aws_conn_id, client_type="sts")
+    creds = aws.get_credentials()
+    s3_filesystem = pa.fs.S3FileSystem(
+        access_key=creds.access_key,
+        secret_key=creds.secret_key,
+        session_token=creds.token,
+        region=region_name,
+    )
+    print('Success retrieving aws creds and s3 filesystem', s3_filesystem)
+    return s3_filesystem
 
 # 3. for each table, extract column names, data types, all values to be able to accurately map to snowflake?
 
