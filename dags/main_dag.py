@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from airflow.sdk import dag, task
 
 from python_code.main.main import (
-    get_pg_cursor,
+    get_pg_conn,
     get_schemas,
     extract_pg_table_data_to_s3,
     _s3fs_from_airflow_conn,
@@ -24,11 +24,11 @@ def ETLPostgressToS3ToSnowflake():
     @task
     def check_pg_conn():
         # get_schemas()
-        # extract_pg_table_data_to_s3(
-        #     'employees',
-        #     'employee',
-        # )
-        _s3fs_from_airflow_conn()
+        # _s3fs_from_airflow_conn()
+        extract_pg_table_data_to_s3(
+            'employees',
+            'department',
+        )
 
     check_pg_conn()
 

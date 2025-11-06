@@ -43,27 +43,19 @@ def get_pg_hook(postgres_conn_id: str = PG_CONN_ID):
 
 
 # prob need a pg cursor i can reuse in other fns
-def get_pg_cursor():
+def get_pg_conn():
     """Connect to psql and return cursor."""
     hook = get_pg_hook()
     conn = hook.get_conn()
-    cur = conn.cursor()
-    print('cursor successfully extracted: ', cur)
-    return cur
-
-
-def get_sqlalchemy_engine():
-    """Returns a SQLAlchemy engine to use."""
-    pg_hook = get_pg_hook()
-    pg_engine = pg_hook.get_sqlalchemy_engine()
-    print('Getting sqlalchemy pg engine success.')
-    return pg_engine
+    print('pg connection obj successfully extracted: ', conn)
+    return conn
 
 
 # 2. for each schema, extract all table names for that schema using information_schema
 def get_schemas():
     """Get all schemas from postgres db."""
-    cur = get_pg_cursor()
+    conn = get_pg_conn()
+    cur = conn.cursor()
     sql = f"""
         SELECT
             DISTINCT
@@ -92,29 +84,44 @@ def extract_pg_table_data_to_s3(
     schema_name: str,
     table_name: str,
     chunksize: int = CHUNK_SIZE,
+    s3_uri: str = S3_URI,
+    max_rows_per_file: int = ROWS_PER_FILE,
 ):
     """Extracts data from a single pg table."""
 
-    pg_engine = get_sqlalchemy_engine()
-
     sql = get_all_table_data(schema_name, table_name)
 
+    # Use PostgresHook to get a raw psycopg2 connection
+    # pandas with chunksize works best with raw DBAPI connections
+    pg_conn = get_pg_conn()
+
     try:
-        with pg_engine.begin() as conn:
-            conn.exec_driver_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")  # prob wait for entire dataset to complete to count as single tx
-            current_chunk = 0
-            for df in pd.read_sql(sql, conn, chunksize=chunksize):
-                current_chunk += chunksize
-                # print(df.head())  # best for quick look at all data
-                print('STARTING ITER FROM ROW:', current_chunk, 'TO', current_chunk + chunksize)
+        # Set transaction isolation level if needed
+        with pg_conn.cursor() as cur:
+            cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+        pg_conn.commit()
 
-                # create table format ready to load to parquet file format
-                tbl = pa.Table.from_pandas(df, preserve_index=False)
+        current_chunk = 0
+        # Pass the raw psycopg2 connection directly - pandas will use it for chunked reading
+        for df in pd.read_sql(sql, pg_conn, chunksize=chunksize):
 
-                # print(tbl)
-                # export table to parquet file in s3
+            # print(df.head())  # best for quick look at all data
+            print('STARTING ITER FROM ROW:', current_chunk, 'TO', current_chunk + chunksize)
+            current_chunk += chunksize
+
+            # create table format ready to load to parquet file format
+            tbl = pa.Table.from_pandas(df, preserve_index=False)
+
+            # # export table to parquet file in s3
+            # s3_filesystem_conn = _s3fs_from_airflow_conn()
+            # writer = parquet_data_writer_obj(
+            #     filesystem=s3_filesystem_conn,
+            #     s3_uri=s3_uri_detail,
+            #     max_rows_per_file=max_rows_per_file,
+            # )
+
     finally:
-        pass
+        pg_conn.close()
 
 
 # retrieve airflow aws s3 conn
@@ -141,10 +148,10 @@ def parquet_data_writer_obj(
         base_dir=s3_uri,  # fix!!!
         schema=None,
         filesystem=filesystem,
-        format=ds.ParquetFileFormat(),  # def compression is uncompressed, snowflake can handle
+        format=ds.ParquetFileFormat(),  # default compression is uncompressed, snowflake can handle
         max_rows_per_file=max_rows_per_file
     )
-    print('Writing to s3')
+    print('Writer ready for s3...')
     return writer
 
 
