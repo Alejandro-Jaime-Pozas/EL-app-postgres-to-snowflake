@@ -5,6 +5,7 @@
 
 
 import os
+from re import S
 
 import pandas as pd
 import pyarrow as pa
@@ -116,11 +117,10 @@ def extract_pg_table_data_to_s3(
         pass
 
 
-# retrieve airflow aws login conn
+# retrieve airflow aws s3 conn
 def _s3fs_from_airflow_conn(aws_conn_id: str = AWS_CONN_ID, region_name: str | None = None):
     aws = AwsBaseHook(aws_conn_id=aws_conn_id, client_type="sts")
     creds = aws.get_credentials()
-    print(creds)
     s3_filesystem = pafs.S3FileSystem(
         access_key=creds.access_key,
         secret_key=creds.secret_key,
@@ -129,6 +129,24 @@ def _s3fs_from_airflow_conn(aws_conn_id: str = AWS_CONN_ID, region_name: str | N
     )
     print('Success retrieving aws creds and s3 filesystem', s3_filesystem)
     return s3_filesystem
+
+
+# use pyarrow dataset write fn to write files to s3 storage location
+def parquet_data_writer_obj(
+    filesystem: pafs.S3FileSystem,
+    s3_uri: str = S3_URI,
+    max_rows_per_file: int = ROWS_PER_FILE
+):
+    writer = ds.DatasetWriter(
+        base_dir=s3_uri,  # fix!!!
+        schema=None,
+        filesystem=filesystem,
+        format=ds.ParquetFileFormat(),  # def compression is uncompressed, snowflake can handle
+        max_rows_per_file=max_rows_per_file
+    )
+    print('Writing to s3')
+    return writer
+
 
 # 3. for each table, extract column names, data types, all values to be able to accurately map to snowflake?
 
