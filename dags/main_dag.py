@@ -6,7 +6,7 @@ from airflow.sdk import dag, task
 from python_code.main.main import (
     get_pg_cursor,
     get_schemas,
-    extract_pg_table_data,
+    extract_pg_table_data_to_s3,
 
 )
 
@@ -22,9 +22,10 @@ def ETLPostgressToS3ToSnowflake():
 
     @task
     def check_pg_conn():
-        extract_pg_table_data(
-            'blue',
-            'bird',
+        get_schemas()
+        extract_pg_table_data_to_s3(
+            'employees',
+            'employee',
         )
 
     check_pg_conn()

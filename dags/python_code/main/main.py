@@ -83,21 +83,29 @@ def get_schemas():
 # 2.5 copy all psql tables into s3 bucket as parquet files, use <proj_name>/db-data/schemas/<schema>/<table> for bucket location
 # pip install psycopg2-binary SQLAlchemy pandas pyarrow s3fs
 
-def extract_pg_table_data(
+# 2.5.1 extract all data from a single pg table
+def extract_pg_table_data_to_s3(
     schema_name: str,
     table_name: str,
-    sql: str = 'select 1;',
     chunksize: int = CHUNK_SIZE,
 ):
     """Extracts data from a single pg table."""
 
     pg_engine = get_sqlalchemy_engine()
 
+    sql = get_all_table_data(schema_name, table_name)
+
     try:
         with pg_engine.begin() as conn:
             conn.exec_driver_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-            for df in pd.read_sql(f'select 1;', conn, chunksize=chunksize):
-                print(df.__dict__)
+            current_chunk = 0
+            for df in pd.read_sql(sql, conn, chunksize=chunksize):
+                print(df.head())  # best for quick look at all data
+                print('STARTING ITER FROM ROW:', current_chunk, 'TO', current_chunk + chunksize)
+                tbl = pa.Table.from_pandas(df, preserve_index=False)
+                current_chunk += chunksize
+                # print(tbl)
+                # export table to parquet file in s3
     finally:
         pass
 
