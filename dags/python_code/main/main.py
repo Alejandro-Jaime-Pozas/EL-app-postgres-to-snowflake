@@ -10,6 +10,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.fs as pafs
+from python_code.main.sql_files.get_all_schemas_and_tables import get_all_schemas_and_tables
 from python_code.main.sql_files.get_all_table_data import get_all_table_data
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -49,23 +50,11 @@ def get_pg_conn():
 
 
 # 2. For each schema, extract all table names for that schema using information_schema
-def get_schemas():
+def get_schemas(pg_conn):
     """Get all schemas from postgres db."""
-    conn = get_pg_conn()
-    cur = conn.cursor()
-    sql = f"""
-        SELECT
-            DISTINCT
-            table_schema,
-            table_name
-        FROM information_schema.tables
-        WHERE table_type = 'BASE TABLE'
-            AND table_schema not in (
-                'information_schema',
-                'pg_catalog'
-            )
-        ;
-    """
+    # conn = get_pg_conn()
+    cur = pg_conn.cursor()
+    sql = get_all_schemas_and_tables()
 
     cur.execute(sql)
     schema_names = cur.fetchall()
@@ -115,17 +104,18 @@ def write_parquet_to_s3(
 def extract_pg_table_data_to_s3(
     schema_name: str,
     table_name: str,
-    chunksize: int = CHUNK_SIZE,
+    pg_conn,
     s3_uri: str = S3_URI,
+    chunksize: int = CHUNK_SIZE,
     max_rows_per_file: int = ROWS_PER_FILE,
 ):
     """Extracts data from a single pg table."""
 
     sql = get_all_table_data(schema_name, table_name)
 
-    # Use PostgresHook to get a raw psycopg2 connection
-    # pandas with chunksize works best with raw DBAPI connections
-    pg_conn = get_pg_conn()
+    # # Use PostgresHook to get a raw psycopg2 connection
+    # # pandas with chunksize works best with raw DBAPI connections
+    # pg_conn = get_pg_conn()
 
     try:
         # Set transaction isolation level if needed
@@ -163,6 +153,7 @@ def extract_pg_table_data_to_s3(
                     f"✅ Success writing table {schema_name}.{table_name} "
                     f"to S3 Parquet files in bucket location:\n\t{s3_uri_detail}"
                 )
+                return 0
 
     finally:
         print('Closing pg connection...')

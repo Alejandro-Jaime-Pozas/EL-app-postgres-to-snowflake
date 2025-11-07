@@ -13,7 +13,7 @@ from python_code.main.main import (
 
 
 @dag(
-    dag_id='main_dag_v01',
+    dag_id='main_dag_v02',
     description='Runs the ETL process to extract from psql db > s3 > snowflake.',
     start_date=datetime(2025, 11, 1),
     schedule=None,
@@ -22,15 +22,29 @@ from python_code.main.main import (
 def ETLPostgressToS3ToSnowflake():
 
     @task
-    def check_pg_conn():
-        # get_schemas()
-        # _s3fs_from_airflow_conn()
-        # TODO change below to loop through all tables from get_schemas tuple results...
-        extract_pg_table_data_to_s3(
-            'employees',
-            'department',
-        )
+    def extract_from_postgres_and_upload_to_s3():
 
-    check_pg_conn()
+        pg_conn = get_pg_conn()
+
+        all_table_names = get_schemas(pg_conn)
+
+        for schema_name, table_name in all_table_names:
+
+            print(f'Will begin processing table: {schema_name}.{table_name} ... ')
+            table_upload = extract_pg_table_data_to_s3(
+                schema_name=schema_name,
+                table_name=table_name,
+                pg_conn=pg_conn,
+            )
+            if table_upload == 0:
+                print(f'Successfully loaded {schema_name}.{table_name} to s3...')
+            else:
+                # TODO if there is an error handle the error
+                print(f'Error in table upload for {schema_name}.{table_name} ... ')
+                return 'Error, check logs'  # include error msg later
+
+        return 0
+
+    extract_from_postgres_and_upload_to_s3() # >> check_or_create_snowflake_integration >>
 
 ETLPostgressToS3ToSnowflake()
