@@ -25,6 +25,7 @@ def ETLPostgressToS3ToSnowflake():
     def check_pg_conn():
         # get_schemas()
         # _s3fs_from_airflow_conn()
+        # TODO change below to loop through all tables from get_schemas tuple results...
         extract_pg_table_data_to_s3(
             'employees',
             'department',
