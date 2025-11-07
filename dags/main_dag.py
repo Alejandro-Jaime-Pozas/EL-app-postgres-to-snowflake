@@ -33,35 +33,24 @@ def ETLPostgressToS3ToSnowflake():
         # Grab all table names to upload to s3
         all_table_names = get_schemas(pg_conn)
 
-        try:
+        # TODO will need to remove for loop and change task to allow for parallel reads/writes of data per table
+        for schema_name, table_name in all_table_names:
 
+            print(f'Will begin processing table: {schema_name}.{table_name} ... ')
             table_upload = extract_pg_table_data_to_s3(
-                schema_name='employees',
-                table_name='employee',
+                schema_name=schema_name,
+                table_name=table_name,
                 pg_conn=pg_conn,
                 s3_filesystem_conn=s3_filesystem_conn,
             )
+            if table_upload == 0:
+                print(f'✅ Successfully loaded {schema_name}.{table_name} to s3...')
+            else:
+                # TODO improve error handling
+                print(f'Error in table upload for {schema_name}.{table_name} ... ')
+                raise ValueError(f'Error, update failed for {schema_name}.{table_name}. Check logs.')
 
-            # for schema_name, table_name in all_table_names:
-
-            #     print(f'Will begin processing table: {schema_name}.{table_name} ... ')
-            #     table_upload = extract_pg_table_data_to_s3(
-            #         schema_name=schema_name,
-            #         table_name=table_name,
-            #         pg_conn=pg_conn,
-            #     )
-            #     if table_upload == 0:
-            #         print(f'✅ Successfully loaded {schema_name}.{table_name} to s3...')
-            #     else:
-            #         # TODO if there is an error handle the error
-            #         print(f'Error in table upload for {schema_name}.{table_name} ... ')
-            #         return 'Error, check logs'  # include error msg later
-
-        finally:
-            print('Closing pg connection...')
-            pg_conn.close()
-            print('✅ pg connection closed.')
-
+        print('✅ Success extracting all tables and loading into s3!')
         return 0
 
     extract_from_postgres_and_upload_to_s3() # >> check_or_create_snowflake_integration >>

@@ -58,9 +58,13 @@ def get_schemas(pg_conn):
     sql = get_all_schemas_and_tables()
 
     cur.execute(sql)
-    schema_names = cur.fetchall()
-    print('schema and table names successfully extracted', schema_names)
-    return schema_names
+    schema_table_names = cur.fetchall()
+
+    exclude_tables = [('employees', 'salary'),]  # exclude some large tables to prevent usage limits s3/snowflake
+    schema_table_names = [t for t in schema_table_names if t not in exclude_tables]
+
+    print('schema and table names successfully extracted', schema_table_names)
+    return schema_table_names
 
 
 # Retrieve airflow aws s3 conn
@@ -155,7 +159,6 @@ def extract_pg_table_data_to_s3(
     )
 
     if writer == 0:
-        print(f"✅ Success writing table {schema_name}.{table_name} to S3")
         return 0
     else:
         return 1
