@@ -15,6 +15,7 @@ from python_code.main.sql_files.get_all_table_data import get_all_table_data
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
+from airflow.providers.amazon.aws.transfers.sql_to_s3 import SqlToS3Operator
 
 
 # Connections Airflow UI
@@ -105,6 +106,7 @@ def extract_pg_table_data_to_s3(
     schema_name: str,
     table_name: str,
     pg_conn,
+    s3_filesystem_conn,
     s3_uri: str = S3_URI,
     chunksize: int = CHUNK_SIZE,
     max_rows_per_file: int = ROWS_PER_FILE,
@@ -113,58 +115,56 @@ def extract_pg_table_data_to_s3(
 
     sql = get_all_table_data(schema_name, table_name)
 
-    # # Use PostgresHook to get a raw psycopg2 connection
-    # # pandas with chunksize works best with raw DBAPI connections
-    # pg_conn = get_pg_conn()
+    # Set transaction isolation level if needed
+    with pg_conn.cursor() as cur:
+        cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+    pg_conn.commit()
 
-    try:
-        # Set transaction isolation level if needed
-        with pg_conn.cursor() as cur:
-            cur.execute("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-        pg_conn.commit()
+    # Create the detailed s3 uri for the file
+    # Each table should have a subfolder with the current run timestamp, and within this folder, multiple parquet files depending on table size
+    s3_file_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    s3_uri_detail = f'{s3_uri}/{schema_name}/tables/{table_name}/run_{s3_file_timestamp}/'
+    print('S3 filepath to use:', s3_uri_detail)
 
-        current_chunk = 0
-        # Pass the raw psycopg2 connection directly - pandas will use it for chunked reading
-        for df in pd.read_sql(sql, pg_conn, chunksize=chunksize):  # will need to change later to use sql alchemy, tried doing this but no instant success
+    # Accumulate all chunks into a list
+    # TODO this approach would store in memory the entire table being read from pg...not ideal if large table need to change
+    all_tables = []
+    current_chunk = 0
 
-            # print(df.head())  # best for quick look at all data
-            print('STARTING ITER FROM ROW:', current_chunk, 'TO', current_chunk + chunksize)
-            current_chunk += chunksize
+    # Pass the raw psycopg2 connection directly - pandas will use it for chunked reading
+    for df in pd.read_sql(sql, pg_conn, chunksize=chunksize):
 
-            # Create table format ready to load to parquet file format
-            tbl = pa.Table.from_pandas(df, preserve_index=False)
+        print('READING CHUNK FROM ROW:', current_chunk, 'TO', current_chunk + chunksize)
+        current_chunk += chunksize
 
-            # Create the detailed s3 uri for the file
-            s3_file_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            s3_uri_detail = f'{s3_uri}/{schema_name}/tables/{table_name}/run_{s3_file_timestamp}/'
-            print('S3 filepath to use:', s3_uri_detail)
+        # Add parquet-ready pa table to all tables
+        tbl = pa.Table.from_pandas(df, preserve_index=False)
+        all_tables.append(tbl)
 
-            # Export table to parquet file in s3
-            s3_filesystem_conn = _s3fs_from_airflow_conn()
-            print(f'Begin writing table {schema_name}.{table_name} to s3...')
-            writer = write_parquet_to_s3(
-                table_data=tbl,
-                filesystem=s3_filesystem_conn,
-                s3_uri=s3_uri_detail,
-                max_rows_per_file=max_rows_per_file,
-            )
-            if writer == 0:
-                print(
-                    f"✅ Success writing table {schema_name}.{table_name} "
-                    f"to S3 Parquet files in bucket location:\n\t{s3_uri_detail}"
-                )
-                return 0
+    # Concatenate all chunks into one big table
+    full_table = pa.concat_tables(all_tables)
+    print(f'Total rows collected: {len(full_table)}')
 
-    finally:
-        print('Closing pg connection...')
-        pg_conn.close()
-        print('✅ pg connection closed.')
+    # Write once - PyArrow will split into multiple files based on max_rows_per_file
+    print(f'Begin writing table {schema_name}.{table_name} to s3...')
+    writer = write_parquet_to_s3(
+        table_data=full_table,
+        filesystem=s3_filesystem_conn,
+        s3_uri=s3_uri_detail,
+        max_rows_per_file=max_rows_per_file,
+    )
 
-# 3. for each table, extract column names, data types, all values to be able to accurately map to snowflake?
+    if writer == 0:
+        print(f"✅ Success writing table {schema_name}.{table_name} to S3")
+        return 0
+    else:
+        return 1
+
+# 3. For each table, extract column names, data types, all values to be able to accurately map to snowflake?
 
 
 
-# 4. create snowflake tables if don't exist using correct column names and data types
+# 4. Create snowflake tables if don't exist using correct column names and data types
 
 
-# 5. overwrite (later insert) postgres data into its corresponding snowflake table incrementally (or full load if first sync)
+# 5. Overwrite (later insert) postgres data into its corresponding snowflake table incrementally (or full load if first sync)

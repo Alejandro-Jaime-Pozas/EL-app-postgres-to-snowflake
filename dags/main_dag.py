@@ -24,24 +24,43 @@ def ETLPostgressToS3ToSnowflake():
     @task
     def extract_from_postgres_and_upload_to_s3():
 
+        # Connect to postgres
         pg_conn = get_pg_conn()
 
+        # Connect to s3 filesystem
+        s3_filesystem_conn = _s3fs_from_airflow_conn()
+
+        # Grab all table names to upload to s3
         all_table_names = get_schemas(pg_conn)
 
-        for schema_name, table_name in all_table_names:
+        try:
 
-            print(f'Will begin processing table: {schema_name}.{table_name} ... ')
             table_upload = extract_pg_table_data_to_s3(
-                schema_name=schema_name,
-                table_name=table_name,
+                schema_name='employees',
+                table_name='employee',
                 pg_conn=pg_conn,
+                s3_filesystem_conn=s3_filesystem_conn,
             )
-            if table_upload == 0:
-                print(f'Successfully loaded {schema_name}.{table_name} to s3...')
-            else:
-                # TODO if there is an error handle the error
-                print(f'Error in table upload for {schema_name}.{table_name} ... ')
-                return 'Error, check logs'  # include error msg later
+
+            # for schema_name, table_name in all_table_names:
+
+            #     print(f'Will begin processing table: {schema_name}.{table_name} ... ')
+            #     table_upload = extract_pg_table_data_to_s3(
+            #         schema_name=schema_name,
+            #         table_name=table_name,
+            #         pg_conn=pg_conn,
+            #     )
+            #     if table_upload == 0:
+            #         print(f'✅ Successfully loaded {schema_name}.{table_name} to s3...')
+            #     else:
+            #         # TODO if there is an error handle the error
+            #         print(f'Error in table upload for {schema_name}.{table_name} ... ')
+            #         return 'Error, check logs'  # include error msg later
+
+        finally:
+            print('Closing pg connection...')
+            pg_conn.close()
+            print('✅ pg connection closed.')
 
         return 0
 
