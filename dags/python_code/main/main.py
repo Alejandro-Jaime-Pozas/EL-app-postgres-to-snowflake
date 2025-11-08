@@ -15,7 +15,6 @@ from python_code.main.sql_files.get_all_table_data import get_all_table_data
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
-from airflow.providers.amazon.aws.transfers.sql_to_s3 import SqlToS3Operator
 
 
 # Connections Airflow UI
