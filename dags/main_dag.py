@@ -26,6 +26,9 @@ def ETLPostgressToS3ToSnowflake():
 
         # Connect to postgres
         pg_conn = get_pg_conn()
+        
+        # TODO check if table update is even needed or if there's no new data, don't update..this could even be a separate task?
+        # check_if_source_updated = check_if_source_updated()
 
         # Connect to s3 filesystem
         s3_filesystem_conn = _s3fs_from_airflow_conn()
