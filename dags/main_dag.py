@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from airflow.sdk import dag, task
 
-from python_code.main.main import (
+from python_code.main.main_pg_to_s3 import (
     get_pg_conn,
     get_schemas,
     extract_pg_table_data_to_s3,
@@ -56,13 +56,15 @@ def ETLPostgressToS3ToSnowflake():
                 raise ValueError(f'Error, update failed for {schema_name}.{table_name}. Check logs.')
 
         print('✅ Success extracting all tables and loading into s3!')
-        return 0
+        return all_table_names  # can return something to pass into the next task so snowflake has access
 
     @task
-    def copy_from_s3_and_upload_to_snowflake():
+    def copy_from_s3_and_upload_to_snowflake(all_table_names: list = None):
         """ Extract table data from s3 and upload into snowflake. """
+        # TODO include for loop here to iter through all tables to create/update
         pass
 
-    extract_from_postgres_and_upload_to_s3() # >> check_or_create_snowflake_integration >>
+    tables_to_load = extract_from_postgres_and_upload_to_s3()
+    snowflake_upload = copy_from_s3_and_upload_to_snowflake(tables_to_load)
 
 ETLPostgressToS3ToSnowflake()

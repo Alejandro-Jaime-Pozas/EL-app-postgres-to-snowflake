@@ -17,7 +17,6 @@ from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 
 # Connections Airflow UI
 PG_CONN_ID='pg-local'  # not local, connects to neon db but ok, change later
-SF_CONN_ID='sf-default'
 AWS_CONN_ID='aws-sandiego'
 
 # Extract from postgres
@@ -165,12 +164,3 @@ def extract_pg_table_data_to_s3(
         return 0
     else:
         return 1
-
-# 3. For each table, extract column names, data types, all values to be able to accurately map to snowflake?
-
-
-
-# 4. Create snowflake tables if don't exist using correct column names and data types
-
-
-# 5. Overwrite (later insert) postgres data into its corresponding snowflake table incrementally (or full load if first sync)

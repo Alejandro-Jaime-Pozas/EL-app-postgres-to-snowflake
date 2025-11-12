@@ -1,16 +1,3 @@
-# Functionality related to transferring s3 files to snowflake.
-
-# 1. for each new s3 file upload (can pass in schema.table from xcom) check if table exists, if not create
-
-# 2. after table is created, copy only new parquet files into the table (snowflake handles parallel processing and prevents prev file loads)
-	# use snowpipe to auto-load as soon as data available in s3 into snowflake.
-
-
-def map_pg_to_snowflake_datatypes():
-    """ Make postgres incomding data types snowflake-proof. """
-    # maybe this is not needed since snowflake can infer schemas!
-
-
 # Create table, infer schema based on file content
 """CREATE TABLE mytable
   USING TEMPLATE (
@@ -25,9 +12,7 @@ def map_pg_to_snowflake_datatypes():
 
 # Copy data from parquet file to existing snowflake table
 """COPY INTO mytable FROM @mystage/csv/
-  FILE_FORMAT = (
-    FORMAT_NAME= 'my_csv_format'
-  )
+  FILE_FORMAT = <my_file_format_name>
   MATCH_BY_COLUMN_NAME=CASE_INSENSITIVE;"""
 
 
