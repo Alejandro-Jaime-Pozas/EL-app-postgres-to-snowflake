@@ -20,13 +20,15 @@ from python_code.main.main import (
     dagrun_timeout=timedelta(minutes=60),
 )
 def ETLPostgressToS3ToSnowflake():
+    """ Dag that extracts tables from postgres db, uploads to s3, then uploads to snowflake. """
 
     @task
     def extract_from_postgres_and_upload_to_s3():
+        """ Extract data from all tables in postgres db and upload data to s3. """
 
         # Connect to postgres
         pg_conn = get_pg_conn()
-        
+
         # TODO check if table update is even needed or if there's no new data, don't update..this could even be a separate task?
         # check_if_source_updated = check_if_source_updated()
 
@@ -55,6 +57,11 @@ def ETLPostgressToS3ToSnowflake():
 
         print('✅ Success extracting all tables and loading into s3!')
         return 0
+
+    @task
+    def copy_from_s3_and_upload_to_snowflake():
+        """ Extract table data from s3 and upload into snowflake. """
+        pass
 
     extract_from_postgres_and_upload_to_s3() # >> check_or_create_snowflake_integration >>
 

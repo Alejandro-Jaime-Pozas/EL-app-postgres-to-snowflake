@@ -1,7 +1,5 @@
-# TODO need to extract data from all schemas that contain tables from postgres db hosted in neon
-    # dag outside this file in dags folder will contain final script, not this file, only for functions
-    # use python functions for now, each main fn (ETL) should translate to a task in the final dag (roughly)
-    # use airflow hooks/operators instead of directly from postgres/snowflake connectors
+# dag outside this file in dags folder will contain final script, not this file, only for functions
+# use airflow hooks/operators instead of directly from postgres/snowflake connectors if possible
 
 
 from datetime import datetime
@@ -10,15 +8,15 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.fs as pafs
-from python_code.main.sql_files.get_all_schemas_and_tables import get_all_schemas_and_tables
-from python_code.main.sql_files.get_all_table_data import get_all_table_data
+from python_code.main.sql_files.pg_sql.get_all_schemas_and_tables import get_all_schemas_and_tables
+from python_code.main.sql_files.pg_sql.get_all_table_data import get_all_table_data
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 
 
 # Connections Airflow UI
-PG_CONN_ID='pg-local'  # not local but ok, change later
+PG_CONN_ID='pg-local'  # not local, connects to neon db but ok, change later
 SF_CONN_ID='sf-default'
 AWS_CONN_ID='aws-sandiego'
 
@@ -30,7 +28,7 @@ S3_URI="postgres-neon-db-employees/db-data/schemas"  # then schema name, tables,
 ROWS_PER_FILE=250_000
 
 
-# 1. Extract all schemas from the db from information_schema
+# 1. Get pg hook and connection
 
 # Need to connect to postgres db
 def get_pg_hook(postgres_conn_id: str = PG_CONN_ID):
@@ -45,29 +43,33 @@ def get_pg_conn():
     """Connect to psql and return cursor."""
     hook = get_pg_hook()
     conn = hook.get_conn()
-    print('pg connection obj successfully extracted: ', conn)
+    print('Postgres connection object successfully extracted: ', conn)
     return conn
 
 
 # 2. For each schema, extract all table names for that schema using information_schema
+
 def get_schemas(pg_conn):
     """Get all schemas from postgres db."""
-    # conn = get_pg_conn()
+    # conn = get_pg_conn()  # now called in main_dag
     cur = pg_conn.cursor()
     sql = get_all_schemas_and_tables()
 
     cur.execute(sql)
     schema_table_names = cur.fetchall()
 
-    exclude_tables = [('employees', 'salary'),]  # exclude some large tables to prevent usage limits s3/snowflake
+    exclude_tables = [
+        ('employees', 'salary'),
+    ]  # exclude some large tables to prevent usage limits s3/snowflake
     schema_table_names = [t for t in schema_table_names if t not in exclude_tables]
 
-    print('schema and table names successfully extracted', schema_table_names)
+    print('schema and table names successfully extracted:', schema_table_names)
     return schema_table_names
 
 
 # Retrieve airflow aws s3 conn
 def _s3fs_from_airflow_conn(aws_conn_id: str = AWS_CONN_ID, region_name: str | None = None):
+    """ Return the s3 file system object. """
     aws = AwsBaseHook(aws_conn_id=aws_conn_id, client_type="sts")
     creds = aws.get_credentials()
     s3_filesystem = pafs.S3FileSystem(
@@ -76,7 +78,7 @@ def _s3fs_from_airflow_conn(aws_conn_id: str = AWS_CONN_ID, region_name: str | N
         session_token=creds.token,
         region=region_name,
     )
-    print('Success retrieving aws creds and s3 filesystem', s3_filesystem)
+    print('Success retrieving aws creds and s3 filesystem:', s3_filesystem)
     return s3_filesystem
 
 
@@ -87,6 +89,7 @@ def write_parquet_to_s3(
     filesystem: pafs.S3FileSystem,
     max_rows_per_file: int = ROWS_PER_FILE,
 ):
+    """ Use pyarrow dataset ds to write data into parquet files in s3. """
     # print('Writer ready for s3...')
     ds.write_dataset(
         data=table_data,
@@ -101,7 +104,8 @@ def write_parquet_to_s3(
     return 0
 
 
-# 2.5 Copy all psql tables into s3 bucket as parquet files, use <proj_name>/db-data/schemas/<schema>/<table> for bucket location
+# 2.5 Copy all psql tables into s3 bucket as parquet files,
+    # use <proj_name>/db-data/schemas/<schema>/tables/<table>/run_<timestamp>/ for write file location
 # pip install psycopg2-binary SQLAlchemy pandas pyarrow s3fs
 
 # 2.5.1 Extract all data from a single pg table
@@ -130,7 +134,7 @@ def extract_pg_table_data_to_s3(
     print('S3 filepath to use:', s3_uri_detail)
 
     # Accumulate all chunks into a list
-    # TODO this approach would store in memory the entire table being read from pg...not ideal if large table need to change
+    # TODO this approach stores in memory the entire table being read from pg...not ideal if large table need to change
     all_tables = []
     current_chunk = 0
 
