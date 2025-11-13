@@ -43,24 +43,24 @@ def ETLPostgressToS3ToSnowflake():
         # Grab all table names to upload to s3
         all_table_names = get_schemas(pg_conn)
 
-        # # TODO will need to remove for loop and change task to allow for parallel reads/writes of data per table
-        # for schema_name, table_name in all_table_names:
+        # TODO will need to remove for loop and change task to allow for parallel reads/writes of data per table
+        for schema_name, table_name in all_table_names:
 
-        #     print(f'Will begin processing table: {schema_name}.{table_name} ... ')
-        #     table_upload = extract_pg_table_data_to_s3(
-        #         schema_name=schema_name,
-        #         table_name=table_name,
-        #         pg_conn=pg_conn,
-        #         s3_filesystem_conn=s3_filesystem_conn,
-        #     )
-        #     if table_upload == 0:
-        #         print(f'✅ Successfully loaded {schema_name}.{table_name} to s3...')
-        #     else:
-        #         # TODO improve error handling
-        #         print(f'Error in table upload for {schema_name}.{table_name} ... ')
-        #         raise ValueError(f'Error, update failed for {schema_name}.{table_name}. Check logs.')
+            print(f'Will begin processing table: {schema_name}.{table_name} ... ')
+            table_upload = extract_pg_table_data_to_s3(
+                schema_name=schema_name,
+                table_name=table_name,
+                pg_conn=pg_conn,
+                s3_filesystem_conn=s3_filesystem_conn,
+            )
+            if table_upload == 0:
+                print(f'✅ Successfully loaded {schema_name}.{table_name} to s3...')
+            else:
+                # TODO improve error handling
+                print(f'Error in table upload for {schema_name}.{table_name} ... ')
+                raise ValueError(f'Error, update failed for {schema_name}.{table_name}. Check logs.')
 
-        # print('✅ Success extracting all tables and loading into s3!')
+        print('✅ Success extracting all tables and loading into s3!')
         return all_table_names  # can return something to pass into the next task so snowflake has access
 
     @task
@@ -71,11 +71,14 @@ def ETLPostgressToS3ToSnowflake():
         # Connect to Snowflake
         sf_conn = get_sf_conn()
 
-        copy_s3_data_into_snowflake(
-            sf_conn=sf_conn,
-            schema_name='public',
-            table_name='car_sales',
-        )
+        # For each table, copy data from s3 into snowflake
+        for schema_name, table_name in all_table_names:
+
+            copy_s3_data_into_snowflake(
+                sf_conn=sf_conn,
+                schema_name=schema_name,
+                table_name=table_name,
+            )
 
     tables_to_load = extract_from_postgres_and_upload_to_s3()
     snowflake_upload = copy_from_s3_and_upload_to_snowflake(tables_to_load)

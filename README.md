@@ -17,12 +17,14 @@ This EL pipeline automation dag uses the following tools for implementation:
 The initial version of this project will have the following capabilites and limitations.
 
 #### Capabilities
+- Can overwrite data from postgres >> s3
 - Can extract data from a single postgres source database
 - Can load the extracted data into an s3 storage bucket with a filepath based on table schema and table name
 - Can copy the loaded data from s3 into a Snowflake database table with same table schema and table name as original postgres source, keeping all column names and data types as original source (or Snowflake equivalent)
 - Can automate this process locally (not in web servers) using Airflow to trigger the entire data pipeline workflow
 
 #### Limitations
+- No incremental updates yet of data
 - Process does not use parallel loading currently for postgres >> s3 nor s3 >> snowflake
 - There is no useful snowflake table metadata to know what file it's coming from or load date
 - Process needs to run locally in Docker container, have not implemented web version

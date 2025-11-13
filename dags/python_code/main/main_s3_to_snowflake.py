@@ -12,6 +12,7 @@
 
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
+from python_code.main.sql_files.snowflake_sql.alter_table_add_metadata import alter_table_add_metadata
 from python_code.main.sql_files.snowflake_sql.copy_into_table import copy_into_table
 from python_code.main.sql_files.snowflake_sql.create_schema import create_schema
 from python_code.main.sql_files.snowflake_sql.create_table import create_table
@@ -46,22 +47,36 @@ def copy_s3_data_into_snowflake(
 
     with sf_conn.cursor() as cur:
 
-        # Create the schema if it doesn't exist yet
-        print(f'''Creating schema {schema_name} if doesn't exist...''')
-        cur.execute(create_schema(schema_name=schema_name))
+        # Schema must exist piror to have access to s3 ext stage parquet files...
+        # # Create the schema if it doesn't exist yet
+        # print(f'''Creating schema {schema_name} if doesn't exist...''')
+        # cur.execute(create_schema(schema_name=schema_name))
 
         # Create the table if it doesn't exist yet
         print(f'''Creating table {schema_name}.{table_name} if doesn't exist...''')
-        cur.execute(create_table(
-            schema_name=schema_name,
-            table_name=table_name,
-            table_files_path=table_files_path,
-        ))
+        try:
+            cur.execute(create_table(
+                schema_name=schema_name,
+                table_name=table_name,
+                table_files_path=table_files_path,
+            ))
+            msg = cur.fetchone()[0]
+            print(msg)
 
-        # # TODO Add metadata cols to table to track history, need if else stmt to check if table was created
-        # print(f'''Adding table metadata cols...''')
+            # If table was created, then add the metadata columns
+            # TODO if table already exists, but for some reason medatacolumns not added, will fail
+            if 'created' in msg and 'exists' not in msg:
+                print(f'''Adding table metadata cols...''')
+                cur.execute(alter_table_add_metadata(
+                    schema_name=schema_name,
+                    table_name=table_name,
+                ))
 
-        # Copy all new parquet files for the specific table from s3 to relevant table in snowflakex
+        except Exception as e:
+            print('Error while executing create table statement:', e)
+            raise
+
+        # Copy all new parquet files for the specific table from s3 to relevant table in snowflake
         print(f'''Copying new files from {table_files_path} to table {schema_name}.{table_name}...''')
         cur.execute(copy_into_table(
             schema_name=schema_name,
