@@ -1,13 +1,20 @@
-# Create table, infer schema based on file content
-"""CREATE TABLE mytable
-  USING TEMPLATE (
-    SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*))
-      FROM TABLE(
-        INFER_SCHEMA(
-          LOCATION=>'@mystage/json/',
-          FILE_FORMAT=>'my_json_format'
-        )
-      ));"""
+def create_table(schema_name, table_name):
+	""" Create table, infer schema based on file content """
+	sql = f"""
+		CREATE TABLE IF NOT EXISTS {schema_name}.{table_name}
+		USING TEMPLATE (
+			SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*))
+			FROM TABLE(
+				INFER_SCHEMA(
+				LOCATION => '@POSTGRES_NEON_DB_EMPLOYEES/db-data/schemas/{schema_name}/tables/{table_name}/',
+				FILE_FORMAT => 'PARQUET_FORMAT'
+				)
+			)
+		);
+	"""
+	print(sql)
+	return sql
+
 
 
 # Copy data from parquet file to existing snowflake table

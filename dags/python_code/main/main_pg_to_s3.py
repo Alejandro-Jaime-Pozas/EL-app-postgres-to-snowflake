@@ -62,7 +62,7 @@ def get_schemas(pg_conn):
     ]  # exclude some large tables to prevent usage limits s3/snowflake
     schema_table_names = [t for t in schema_table_names if t not in exclude_tables]
 
-    print('schema and table names successfully extracted:', schema_table_names)
+    print('Schema and table names successfully extracted:', schema_table_names)
     return schema_table_names
 
 

@@ -3,6 +3,11 @@ from datetime import datetime, timedelta
 
 from airflow.sdk import dag, task
 
+from python_code.main.main_s3_to_snowflake import (
+    copy_s3_data_into_snowflake,
+    get_sf_conn,
+
+)
 from python_code.main.main_pg_to_s3 import (
     get_pg_conn,
     get_schemas,
@@ -38,31 +43,39 @@ def ETLPostgressToS3ToSnowflake():
         # Grab all table names to upload to s3
         all_table_names = get_schemas(pg_conn)
 
-        # TODO will need to remove for loop and change task to allow for parallel reads/writes of data per table
-        for schema_name, table_name in all_table_names:
+        # # TODO will need to remove for loop and change task to allow for parallel reads/writes of data per table
+        # for schema_name, table_name in all_table_names:
 
-            print(f'Will begin processing table: {schema_name}.{table_name} ... ')
-            table_upload = extract_pg_table_data_to_s3(
-                schema_name=schema_name,
-                table_name=table_name,
-                pg_conn=pg_conn,
-                s3_filesystem_conn=s3_filesystem_conn,
-            )
-            if table_upload == 0:
-                print(f'✅ Successfully loaded {schema_name}.{table_name} to s3...')
-            else:
-                # TODO improve error handling
-                print(f'Error in table upload for {schema_name}.{table_name} ... ')
-                raise ValueError(f'Error, update failed for {schema_name}.{table_name}. Check logs.')
+        #     print(f'Will begin processing table: {schema_name}.{table_name} ... ')
+        #     table_upload = extract_pg_table_data_to_s3(
+        #         schema_name=schema_name,
+        #         table_name=table_name,
+        #         pg_conn=pg_conn,
+        #         s3_filesystem_conn=s3_filesystem_conn,
+        #     )
+        #     if table_upload == 0:
+        #         print(f'✅ Successfully loaded {schema_name}.{table_name} to s3...')
+        #     else:
+        #         # TODO improve error handling
+        #         print(f'Error in table upload for {schema_name}.{table_name} ... ')
+        #         raise ValueError(f'Error, update failed for {schema_name}.{table_name}. Check logs.')
 
-        print('✅ Success extracting all tables and loading into s3!')
+        # print('✅ Success extracting all tables and loading into s3!')
         return all_table_names  # can return something to pass into the next task so snowflake has access
 
     @task
     def copy_from_s3_and_upload_to_snowflake(all_table_names: list = None):
         """ Extract table data from s3 and upload into snowflake. """
         # TODO include for loop here to iter through all tables to create/update
-        pass
+
+        # Connect to Snowflake
+        sf_conn = get_sf_conn()
+
+        copy_s3_data_into_snowflake(
+            sf_conn=sf_conn,
+            schema_name='employees',  # TODO WILL NEED TO CREATE A SAME-NAMED EMPLOYEES SCHEMA...
+            table_name='department',
+        )
 
     tables_to_load = extract_from_postgres_and_upload_to_s3()
     snowflake_upload = copy_from_s3_and_upload_to_snowflake(tables_to_load)
