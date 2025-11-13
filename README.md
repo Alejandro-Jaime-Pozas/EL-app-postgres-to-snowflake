@@ -27,9 +27,14 @@ The initial version of this project will have the following capabilites and limi
 - There is no useful snowflake table metadata to know what file it's coming from or load date
 - Process needs to run locally in Docker container, have not implemented web version
 - Have not implemented code refactoring
+- No exception handling or error checking
+
+The end product for v1 of the project will essentially be a basic EL flow from postgres >> s3 >> snowflake using airflow's built-in connectors/hooks/operators for those services.
 
 
 # Config
+
+## Data sources and destinations
 
 - Neon Database Postgres contains sample employee data pulled from github
   - Creds: ajaimepozas@gmail.com
@@ -40,4 +45,14 @@ The initial version of this project will have the following capabilites and limi
 - Snowflake account free usage 30 days ($400 dls)
   - Creds: ajaimepozas@sandiego.edu
   - Location: https://app.snowflake.com/nhhtawd/lg21858/#/homepage
-- Separated requirements files since airflow requires many packages.
+
+## Project Config
+
+- Using Airflow's Taskflow API for main python code functionality
+- Separated requirements files since airflow requires many packages
+  - requirements.txt contains bare-bones packages required for dag folder imports
+  - requirements.airflow.txt contains all airflow version packages
+
+## Dev Usage
+
+Use
