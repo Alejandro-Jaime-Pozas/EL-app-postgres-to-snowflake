@@ -55,4 +55,10 @@ The end product for v1 of the project will essentially be a basic EL flow from p
 
 ## Dev Usage
 
-Use
+- Use docker compose up -d to run the airflow project in the background.
+- Once airflow is up and running in the docker container, you can access the airflow UI in localhost:8080
+- You need to set up your connections to postgres, aws, snowflake for the process to work, in Admin > Connections > Add Connection
+  - Postgres
+  - AWS
+  - Snowflake
+- 'main_dag' is the main dag that runs the entire process, so you can schedule it and trigger it in the UI for testing.
