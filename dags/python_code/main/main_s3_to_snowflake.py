@@ -12,6 +12,8 @@
 
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
+from python_code.main.sql_files.snowflake_sql.copy_into_table import copy_into_table
+from python_code.main.sql_files.snowflake_sql.create_schema import create_schema
 from python_code.main.sql_files.snowflake_sql.create_table import create_table
 
 
@@ -39,20 +41,28 @@ def copy_s3_data_into_snowflake(
     and copies into snowflake relevant table.
     """
 
+    table_files_path = f'@POSTGRES_NEON_DB_EMPLOYEES/db-data/schemas/{schema_name}/tables/{table_name}/'  # use for snowflake stage path
+
     # 1. Create snowflake tables if don't exist using correct column names and data types based on s3 bucket contents
-    # check if table exists in snowflake
-        # if not exists, then create the table
+
     with sf_conn.cursor() as cur:
 
-        # Create the table if it doesn't exist
-        cur.execute(f"SELECT 'Hello from Python script in main_s3_to_snowflake.py, will extract data from {schema_name}.{table_name}';")
-        print(cur.fetchall())
+        # Create the schema if it doesn't exist yet
+        cur.execute(create_schema(schema_name=schema_name))
+
+        # Create the table if it doesn't exist yet
         cur.execute(create_table(
             schema_name=schema_name,
             table_name=table_name,
+            table_files_path=table_files_path,
         ))
 
-        # Copy all new parquet files for the specific table from s3 to relevant table in snowflake
+        # Copy all new parquet files for the specific table from s3 to relevant table in snowflakex
+        cur.execute(copy_into_table(
+            schema_name=schema_name,
+            table_name=table_name,
+            table_files_path=table_files_path,
+        ))
 
 
     sf_conn.commit()

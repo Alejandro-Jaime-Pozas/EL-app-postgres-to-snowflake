@@ -73,8 +73,8 @@ def ETLPostgressToS3ToSnowflake():
 
         copy_s3_data_into_snowflake(
             sf_conn=sf_conn,
-            schema_name='employees',  # TODO WILL NEED TO CREATE A SAME-NAMED EMPLOYEES SCHEMA...
-            table_name='department',
+            schema_name='public',
+            table_name='car_sales',
         )
 
     tables_to_load = extract_from_postgres_and_upload_to_s3()

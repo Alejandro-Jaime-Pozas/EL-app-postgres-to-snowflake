@@ -52,8 +52,16 @@ The end product for v1 of the project will essentially be a basic EL flow from p
 - Separated requirements files since airflow requires many packages
   - requirements.txt contains bare-bones packages required for dag folder imports
   - requirements.airflow.txt contains all airflow version packages
+- Postgres:
+- AWS:
+- Snowflake:
+  - Existing database
+  - Existing storage integration to s3 bucket
+  - Existing external stage
+  - Existing file format for parquet files
+  - ACCOUNTADMIN role as default role
 
-## Dev Usage
+## How to Use
 
 - Use docker compose up -d to run the airflow project in the background.
 - Once airflow is up and running in the docker container, you can access the airflow UI in localhost:8080
