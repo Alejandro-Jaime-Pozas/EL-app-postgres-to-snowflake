@@ -1,5 +1,6 @@
 def create_table(schema_name, table_name):
 	""" Create table, infer schema based on file content """
+	# TODO add metadata for ingestion later: filename, timestamp
 	sql = f"""
 		CREATE TABLE IF NOT EXISTS {schema_name}.{table_name}
 		USING TEMPLATE (
