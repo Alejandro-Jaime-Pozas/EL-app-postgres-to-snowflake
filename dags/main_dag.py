@@ -66,7 +66,6 @@ def ETLPostgressToS3ToSnowflake():
     @task
     def copy_from_s3_and_upload_to_snowflake(all_table_names: list = None):
         """ Extract table data from s3 and upload into snowflake. """
-        # TODO include for loop here to iter through all tables to create/update
 
         # Connect to Snowflake
         sf_conn = get_sf_conn()
@@ -79,6 +78,8 @@ def ETLPostgressToS3ToSnowflake():
                 schema_name=schema_name,
                 table_name=table_name,
             )
+
+        return 0
 
     tables_to_load = extract_from_postgres_and_upload_to_s3()
     snowflake_upload = copy_from_s3_and_upload_to_snowflake(tables_to_load)
