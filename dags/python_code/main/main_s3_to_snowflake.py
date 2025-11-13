@@ -18,7 +18,6 @@ from python_code.main.sql_files.snowflake_sql.create_table import create_table
 
 
 SNOWFLAKE_CONN_ID = 'snowflake-sandiego-db-employees-schema-employees_s3'
-TEMP_all_tables_names = [('employees', 'department'), ('employees', 'employee')]
 
 
 def get_sf_conn(snowflake_conn_id=SNOWFLAKE_CONN_ID):
@@ -48,16 +47,22 @@ def copy_s3_data_into_snowflake(
     with sf_conn.cursor() as cur:
 
         # Create the schema if it doesn't exist yet
+        print(f'''Creating schema {schema_name} if doesn't exist...''')
         cur.execute(create_schema(schema_name=schema_name))
 
         # Create the table if it doesn't exist yet
+        print(f'''Creating table {schema_name}.{table_name} if doesn't exist...''')
         cur.execute(create_table(
             schema_name=schema_name,
             table_name=table_name,
             table_files_path=table_files_path,
         ))
 
+        # # TODO Add metadata cols to table to track history, need if else stmt to check if table was created
+        # print(f'''Adding table metadata cols...''')
+
         # Copy all new parquet files for the specific table from s3 to relevant table in snowflakex
+        print(f'''Copying new files from {table_files_path} to table {schema_name}.{table_name}...''')
         cur.execute(copy_into_table(
             schema_name=schema_name,
             table_name=table_name,

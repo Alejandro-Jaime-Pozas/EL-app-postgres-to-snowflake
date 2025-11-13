@@ -18,7 +18,7 @@ from python_code.main.main_pg_to_s3 import (
 
 
 @dag(
-    dag_id='main_dag_v02',
+    dag_id='main_dag_v03',
     description='Runs the ETL process to extract from psql db > s3 > snowflake.',
     start_date=datetime(2025, 11, 1),
     schedule=None,
