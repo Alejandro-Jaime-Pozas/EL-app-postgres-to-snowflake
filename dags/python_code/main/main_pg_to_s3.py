@@ -16,14 +16,17 @@ from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 
 
 # Connections Airflow UI
-PG_CONN_ID='pg-local'  # not local, connects to neon db but ok, change later
+# PG_CONN_ID='pg-local'  # not local, connects to neon db but ok, change later
+PG_CONN_ID='postgres_stock_app'  # stock application db in neon
 AWS_CONN_ID='aws-sandiego'
+
+DB_NAME = 'stock_app'
 
 # Extract from postgres
 CHUNK_SIZE=50_000
 
 # Load to S3
-S3_URI="postgres-neon-db-employees/db-data/schemas"  # then schema name, tables, table name, run timestamp, files
+S3_URI=f"postgres-neon-db-{DB_NAME.replace('_','-')}/db-data/schemas"  # then schema name, tables, table name, run timestamp, files
 ROWS_PER_FILE=250_000
 
 
@@ -59,6 +62,8 @@ def get_schemas(pg_conn):
 
     exclude_tables = [
         ('employees', 'salary'),
+        ('employees', 'department_employee'),
+        ('employees', 'title'),
     ]  # exclude some large tables to prevent usage limits s3/snowflake
     schema_table_names = [t for t in schema_table_names if t not in exclude_tables]
 
@@ -76,6 +81,7 @@ def _s3fs_from_airflow_conn(aws_conn_id: str = AWS_CONN_ID, region_name: str | N
         secret_key=creds.secret_key,
         session_token=creds.token,
         region=region_name,
+        allow_bucket_creation=True,
     )
     print('Success retrieving aws creds and s3 filesystem:', s3_filesystem)
     return s3_filesystem
