@@ -41,6 +41,15 @@ def copy_s3_data_into_snowflake(
     and copies into snowflake relevant table.
     """
 
+    # TODO
+        # TODO later implement not specifying the db in the airflow connection, instead leave empty and activate the db separately
+        # create the database if not exists with same name as postgres database
+        # create the schema if not exists with same name as pg schema
+        # use the db, use the schema
+        # create the snowflake s3 integration (unsure if needed bc of new bucket, check this out)
+        # create the stage if not exists using same name as s3 bucket
+        # create the parquet file format in schema
+
     table_files_path = f'@POSTGRES_NEON_DB_EMPLOYEES/db-data/schemas/{schema_name}/tables/{table_name}/'  # use for snowflake stage path
 
     # 1. Create snowflake tables if don't exist using correct column names and data types based on s3 bucket contents
