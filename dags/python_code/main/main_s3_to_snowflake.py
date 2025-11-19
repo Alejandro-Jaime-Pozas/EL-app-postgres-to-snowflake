@@ -47,8 +47,9 @@ def copy_s3_data_into_snowflake(
         # create the schema if not exists with same name as pg schema
         # use the db, use the schema
         # create the snowflake s3 integration (unsure if needed bc of new bucket, check this out)
-        # create the stage if not exists using same name as s3 bucket
+            # looks like I only need to change IAM s3 permissions to include access to all buckets..snowflake only reqs 1 integration per service
         # create the parquet file format in schema
+        # create the stage if not exists using same name as s3 bucket
 
     table_files_path = f'@POSTGRES_NEON_DB_EMPLOYEES/db-data/schemas/{schema_name}/tables/{table_name}/'  # use for snowflake stage path
 

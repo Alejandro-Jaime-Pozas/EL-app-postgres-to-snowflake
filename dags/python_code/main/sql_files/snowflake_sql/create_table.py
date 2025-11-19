@@ -1,5 +1,5 @@
 def create_table(schema_name, table_name, table_files_path):
-	""" Create table, infer schema based on file content """
+	""" Create table, infer schema based on file content. """
 
 	sql = f"""
 		CREATE TABLE IF NOT EXISTS {schema_name}.{table_name}
