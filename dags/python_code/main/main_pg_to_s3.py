@@ -41,13 +41,22 @@ def get_pg_hook(postgres_conn_id: str = PG_CONN_ID):
 
 
 # Prob need a pg conn i can reuse in other fns
-def get_pg_conn():
-    """Connect to psql and return cursor."""
-    hook = get_pg_hook()
-    conn = hook.get_conn()
+def get_pg_conn(pg_hook: PostgresHook = get_pg_hook()):
+    """Connect to psql and return connection."""
+    conn = pg_hook.get_conn()
     print('Postgres connection object successfully extracted: ', conn)
     return conn
 
+# Get airflow pg conn object info
+def get_pg_conn_info(
+    pg_hook: PostgresHook = get_pg_hook(),
+    postgres_conn_id: str = PG_CONN_ID
+):
+    """Get the connection details to extract database name."""
+    conn_info = pg_hook.get_connection(postgres_conn_id)
+    conn_db_name = conn_info.schema
+    print('The pg conn database name is:', conn_db_name)
+    return conn_info
 
 # 2. For each schema, extract all table names for that schema using information_schema
 

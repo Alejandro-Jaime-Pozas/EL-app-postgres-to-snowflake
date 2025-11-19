@@ -10,6 +10,8 @@ from python_code.main.main_s3_to_snowflake import (
 )
 from python_code.main.main_pg_to_s3 import (
     get_pg_conn,
+    get_pg_conn_info,
+    get_pg_hook,
     get_schemas,
     extract_pg_table_data_to_s3,
     _s3fs_from_airflow_conn,
@@ -32,7 +34,10 @@ def ETLPostgressToS3ToSnowflake():
         """ Extract data from all tables in postgres db and upload data to s3. """
 
         # Connect to postgres
-        pg_conn = get_pg_conn()
+        pg_hook = get_pg_hook()
+        pg_conn = get_pg_conn(pg_hook)
+        pg_db_name = get_pg_conn_info().schema  # get the db name to use downstream
+        return pg_db_name  # TEMP
 
         # TODO check if table update is even needed or if there's no new data, don't update..this could even be a separate task?
         # check_if_source_updated = check_if_source_updated()
@@ -66,6 +71,8 @@ def ETLPostgressToS3ToSnowflake():
     @task
     def copy_from_s3_and_upload_to_snowflake(all_table_names: list = None):
         """ Extract table data from s3 and upload into snowflake. """
+
+        return
 
         # Connect to Snowflake
         sf_conn = get_sf_conn()
